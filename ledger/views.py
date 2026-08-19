@@ -99,7 +99,7 @@ def transfer_view(request):
                         description=f"Transfer to {bank_label} - {account_number}. {description}".strip(),
                         status='PENDING',
                     )
-                    messages.success(request, f"Transfer of ${amount} to {account_number} is pending approval.")
+                    messages.success(request, f"Transfer of ${amount:.2f} to {account_number} is pending approval.")
                     return redirect('ledger:dashboard')
                 except ValidationError as e:
                     messages.error(request, str(e))
@@ -118,7 +118,7 @@ def deposit_view(request):
             try:
                 # In sandbox we assume deposit is successful
                 execute_deposit(account.id, amount, description="Sandbox Deposit")
-                messages.success(request, f"Successfully deposited ${amount}.")
+                messages.success(request, f"Successfully deposited ${amount:.2f}.")
                 return redirect('ledger:dashboard')
             except ValidationError as e:
                 messages.error(request, str(e))
