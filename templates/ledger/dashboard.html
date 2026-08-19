@@ -39,7 +39,7 @@
         <div class="relative z-10">
             <p class="text-sm font-medium text-blue-200 mb-1 opacity-80">Total Balance</p>
             <h2 class="text-4xl font-extrabold mb-1">
-                {{ account.currency }} <span class="tabular-nums">{{ account.balance }}</span>
+                $ <span class="tabular-nums">{{ account.balance }}</span>
             </h2>
             <p class="text-sm text-blue-200 opacity-60 mb-8">{{ user.email }}</p>
             {% if account.account_number %}
@@ -96,7 +96,7 @@
             </div>
             <div>
                 <p class="text-xs text-dark-400 mb-0.5">Currency</p>
-                <p class="text-sm font-medium text-white">{{ account.currency }} (Nigerian Naira)</p>
+                <p class="text-sm font-medium text-white">USD (US Dollar)</p>
             </div>
         </div>
     </div>
@@ -131,7 +131,7 @@
                     </div>
                     <div class="text-right">
                         <p class="text-sm font-bold tabular-nums {% if entry.entry_type == 'CREDIT' %}text-green-400{% else %}text-white{% endif %}">
-                            {% if entry.entry_type == 'CREDIT' %}+{% else %}-{% endif %}{{ txn.currency }} {{ entry.amount }}
+                            {% if entry.entry_type == 'CREDIT' %}+{% else %}-{% endif %}$ {{ entry.amount }}
                         </p>
                         <p class="text-xs
                             {% if txn.status == 'SUCCESS' %}text-green-400
