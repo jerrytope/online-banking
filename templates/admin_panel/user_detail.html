@@ -51,7 +51,7 @@
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div class="glass rounded-xl p-5">
                 <p class="text-xs text-dark-400 uppercase tracking-wider mb-2">Balance</p>
-                <p class="text-2xl font-bold text-white tabular-nums">NGN {{ account.balance|default:"0.00" }}</p>
+                <p class="text-2xl font-bold text-white tabular-nums">$ {{ account.balance|default:"0.00" }}</p>
                 {% if account.account_number %}
                 <p class="text-xs text-dark-400 mt-2 font-mono tracking-wider">A/C: {{ account.account_number }}</p>
                 {% endif %}
@@ -100,7 +100,7 @@
                             <td class="px-5 py-3 text-sm text-dark-300">{{ txn.created_at|date:"M d, Y h:iA" }}</td>
                             <td class="px-5 py-3 text-sm text-white font-medium">{{ txn.get_transaction_type_display }}</td>
                             <td class="px-5 py-3 text-xs text-dark-400 font-mono">{{ txn.reference|default:"-" }}</td>
-                            <td class="px-5 py-3 text-sm font-bold text-right tabular-nums text-white">{{ txn.currency }} {{ txn.amount }}</td>
+                            <td class="px-5 py-3 text-sm font-bold text-right tabular-nums text-white">$ {{ txn.amount }}</td>
                             <td class="px-5 py-3 text-center">
                                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-medium
                                     {% if txn.status == 'SUCCESS' %}bg-green-500/10 text-green-400 border border-green-500/20

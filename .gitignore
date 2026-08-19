@@ -1,4 +1,6 @@
 .env
 venv/
 venv\
-plans/
+plans/.venv/
+__pycache__/
+*.pyc

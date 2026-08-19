@@ -28,7 +28,7 @@ class Account(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='accounts')
     account_type = models.CharField(max_length=50, choices=ACCOUNT_TYPES, default='USER_WALLET')
     account_number = models.CharField(max_length=10, unique=True, blank=True, null=True)
-    currency = models.CharField(max_length=3, default='NGN')
+    currency = models.CharField(max_length=3, default='USD')
     balance = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -71,10 +71,17 @@ class Transaction(models.Model):
     idempotency_key = models.CharField(max_length=255, unique=True, null=True, blank=True)
     transaction_type = models.CharField(max_length=50, choices=TRANSACTION_TYPES)
     amount = models.DecimalField(max_digits=12, decimal_places=2)
-    currency = models.CharField(max_length=3, default='NGN')
+    currency = models.CharField(max_length=3, default='USD')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
     reference = models.CharField(max_length=100, unique=True, null=True, blank=True)
     description = models.TextField(blank=True)
+    destination_account = models.ForeignKey(
+        'Account',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='incoming_transactions',
+    )
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

@@ -78,37 +78,28 @@ def transfer_view(request):
             amount = form.cleaned_data['amount']
             description = form.cleaned_data['description']
             
-            # For internal transfers (Jazz MFB), look up by account number
-            if bank == 'jazz-mfb':
-                try:
-                    recipient_account = Account.objects.get(
-                        account_number=account_number,
-                        account_type='USER_WALLET',
-                        is_active=True,
-                    )
-                    if recipient_account.user == request.user:
-                        messages.error(request, "Cannot transfer to yourself.")
-                    else:
-                        execute_transfer(account.id, recipient_account.id, amount, description=description)
-                        recipient_name = recipient_account.user.get_full_name() or recipient_account.user.email
-                        messages.success(request, f"Successfully transferred {amount} NGN to {recipient_name} ({account_number}).")
-                        return redirect('ledger:dashboard')
-                except Account.DoesNotExist:
-                    messages.error(request, f"Account number {account_number} not found in Jazz Microfinance Bank.")
-                except ValidationError as e:
-                    messages.error(request, str(e))
+            # The recipient is always resolved by account number, whichever bank is selected
+            recipient_account = Account.objects.filter(
+                account_number=account_number,
+                account_type='USER_WALLET',
+                is_active=True,
+            ).first()
+
+            if recipient_account is None:
+                messages.error(request, f"Account number {account_number} not found.")
+            elif recipient_account.user == request.user:
+                messages.error(request, "Cannot transfer to yourself.")
             else:
-                # External bank transfer — create as PENDING
+                bank_label = dict(form.fields['bank'].choices).get(bank, bank)
                 try:
                     execute_transfer(
                         account.id,
-                        None,
+                        recipient_account.id,
                         amount,
-                        description=f"Transfer to {bank} - {account_number}. {description}".strip(),
+                        description=f"Transfer to {bank_label} - {account_number}. {description}".strip(),
                         status='PENDING',
                     )
-                    bank_label = dict(form.fields['bank'].choices).get(bank, bank)
-                    messages.success(request, f"Transfer of {amount} NGN to {bank_label} ({account_number}) is pending.")
+                    messages.success(request, f"Transfer of ${amount} to {account_number} is pending approval.")
                     return redirect('ledger:dashboard')
                 except ValidationError as e:
                     messages.error(request, str(e))
@@ -127,7 +118,7 @@ def deposit_view(request):
             try:
                 # In sandbox we assume deposit is successful
                 execute_deposit(account.id, amount, description="Sandbox Deposit")
-                messages.success(request, f"Successfully deposited {amount} NGN.")
+                messages.success(request, f"Successfully deposited ${amount}.")
                 return redirect('ledger:dashboard')
             except ValidationError as e:
                 messages.error(request, str(e))

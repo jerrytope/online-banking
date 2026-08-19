@@ -12,7 +12,7 @@
             </div>
             <div class="glass rounded-lg px-4 py-2">
                 <p class="text-xs text-dark-400">Available</p>
-                <p class="text-sm font-bold text-white tabular-nums">{{ account.currency }} {{ account.balance }}</p>
+                <p class="text-sm font-bold text-white tabular-nums">$ {{ account.balance }}</p>
             </div>
         </div>
 
@@ -37,7 +37,7 @@
                 {% if form.bank.errors %}
                     <p class="text-red-400 text-xs mt-1">{{ form.bank.errors.0 }}</p>
                 {% endif %}
-                <p class="text-xs text-dark-400 mt-1">Transfers to Jazz MFB are instant. Other banks may be pending.</p>
+                <p class="text-xs text-dark-400 mt-1">Transfers are delivered to the account number entered and go out once approved.</p>
             </div>
 
             <!-- Account Number -->
@@ -54,10 +54,10 @@
 
             <!-- Amount -->
             <div>
-                <label class="block text-sm font-medium text-dark-200 mb-1.5">Amount ({{ account.currency }})</label>
+                <label class="block text-sm font-medium text-dark-200 mb-1.5">Amount ($)</label>
                 <div class="relative">
                     <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                        <span class="text-dark-400 text-sm font-medium">{{ account.currency }}</span>
+                        <span class="text-dark-400 text-sm font-medium">$</span>
                     </div>
                     <input type="number" name="{{ form.amount.name }}" id="{{ form.amount.id_for_label }}" step="0.01" min="0.01"
                         class="input-dark w-full pl-14 pr-4 py-3 rounded-xl text-sm tabular-nums"

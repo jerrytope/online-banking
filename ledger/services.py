@@ -5,11 +5,20 @@ from .models import Account, Transaction, LedgerEntry
 from .providers import default_provider
 import uuid
 
+
+def _get_suspense_account(currency):
+    suspense_account, _ = Account.objects.get_or_create(
+        account_type='SYSTEM_PROVISION',
+        defaults={'currency': currency, 'balance': Decimal('0.00')}
+    )
+    return Account.objects.select_for_update().get(id=suspense_account.id)
+
 def execute_transfer(from_account_id, to_account_id, amount, idempotency_key=None, description="", status='SUCCESS'):
     """
     Executes an atomic transfer between two accounts using double-entry accounting.
     Uses select_for_update to prevent race conditions during concurrent requests.
-    If to_account_id is None, creates a PENDING external transfer (debits sender, no receiver yet).
+    When status is not 'SUCCESS' the funds are held in the system suspense account
+    until the transfer is settled or reversed (see settle_transfer / reverse_transfer).
     """
     if amount <= 0:
         raise ValidationError("Transfer amount must be greater than zero.")
@@ -32,16 +41,23 @@ def execute_transfer(from_account_id, to_account_id, amount, idempotency_key=Non
         if from_account.balance < amount_dec:
             raise ValidationError("Insufficient funds.")
 
-        # External transfer (no destination account yet)
-        if to_account_id is None:
+        # Transfer awaiting approval: hold the funds in the suspense account
+        if status != 'SUCCESS':
+            to_account = None
+            if to_account_id is not None:
+                to_account = Account.objects.filter(id=to_account_id).first()
+                if to_account is None:
+                    raise ValidationError("Destination account does not exist.")
+
             txn = Transaction.objects.create(
                 idempotency_key=idempotency_key,
                 transaction_type='TRANSFER',
                 amount=amount_dec,
                 currency=from_account.currency,
-                status=status if status != 'SUCCESS' else 'PENDING',
+                status=status,
                 description=description,
-                reference=f"TRF-{uuid.uuid4().hex[:10].upper()}"
+                reference=f"TRF-{uuid.uuid4().hex[:10].upper()}",
+                destination_account=to_account,
             )
             # Debit sender
             LedgerEntry.objects.create(
@@ -51,10 +67,7 @@ def execute_transfer(from_account_id, to_account_id, amount, idempotency_key=Non
                 amount=amount_dec
             )
             # Credit system suspense account (holding)
-            suspense_account, _ = Account.objects.get_or_create(
-                account_type='SYSTEM_PROVISION',
-                defaults={'currency': from_account.currency, 'balance': Decimal('0.00')}
-            )
+            suspense_account = _get_suspense_account(from_account.currency)
             LedgerEntry.objects.create(
                 transaction=txn,
                 account=suspense_account,
@@ -86,7 +99,8 @@ def execute_transfer(from_account_id, to_account_id, amount, idempotency_key=Non
             currency=from_account.currency,
             status=status,
             description=description,
-            reference=f"TRF-{uuid.uuid4().hex[:10].upper()}"
+            reference=f"TRF-{uuid.uuid4().hex[:10].upper()}",
+            destination_account=to_account,
         )
 
         # Create double-entry ledger records
@@ -112,6 +126,89 @@ def execute_transfer(from_account_id, to_account_id, amount, idempotency_key=Non
         to_account.save(update_fields=['balance'])
 
     return txn
+
+def settle_transfer(txn):
+    """
+    Releases funds held in the suspense account to the destination account of an
+    approved transfer. Returns True when the credit was applied.
+    """
+    with db_transaction.atomic():
+        txn = Transaction.objects.select_for_update().get(id=txn.id)
+        if txn.transaction_type != 'TRANSFER' or txn.destination_account_id is None:
+            return False
+        if txn.entries.filter(account_id=txn.destination_account_id, entry_type='CREDIT').exists():
+            return False
+
+        to_account = Account.objects.select_for_update().get(id=txn.destination_account_id)
+        suspense_account = _get_suspense_account(txn.currency)
+
+        LedgerEntry.objects.create(
+            transaction=txn,
+            account=suspense_account,
+            entry_type='DEBIT',
+            amount=txn.amount
+        )
+        LedgerEntry.objects.create(
+            transaction=txn,
+            account=to_account,
+            entry_type='CREDIT',
+            amount=txn.amount
+        )
+
+        suspense_account.balance -= txn.amount
+        to_account.balance += txn.amount
+        suspense_account.save(update_fields=['balance'])
+        to_account.save(update_fields=['balance'])
+
+    return True
+
+
+def reverse_transfer(txn):
+    """
+    Returns funds held in the suspense account to the sender of a rejected
+    transfer. Returns True when the refund was applied.
+    """
+    with db_transaction.atomic():
+        txn = Transaction.objects.select_for_update().get(id=txn.id)
+        if txn.transaction_type != 'TRANSFER':
+            return False
+        # Already delivered to the recipient, nothing is held anymore
+        if txn.destination_account_id and txn.entries.filter(
+            account_id=txn.destination_account_id, entry_type='CREDIT'
+        ).exists():
+            return False
+
+        sender_entry = txn.entries.filter(entry_type='DEBIT').exclude(
+            account__account_type='SYSTEM_PROVISION'
+        ).first()
+        if sender_entry is None:
+            return False
+        if txn.entries.filter(account_id=sender_entry.account_id, entry_type='CREDIT').exists():
+            return False
+
+        from_account = Account.objects.select_for_update().get(id=sender_entry.account_id)
+        suspense_account = _get_suspense_account(txn.currency)
+
+        LedgerEntry.objects.create(
+            transaction=txn,
+            account=suspense_account,
+            entry_type='DEBIT',
+            amount=txn.amount
+        )
+        LedgerEntry.objects.create(
+            transaction=txn,
+            account=from_account,
+            entry_type='CREDIT',
+            amount=txn.amount
+        )
+
+        suspense_account.balance -= txn.amount
+        from_account.balance += txn.amount
+        suspense_account.save(update_fields=['balance'])
+        from_account.save(update_fields=['balance'])
+
+    return True
+
 
 def execute_deposit(account_id, amount, reference=None, description="Deposit"):
     """

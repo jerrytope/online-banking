@@ -6,7 +6,7 @@ from django.db.models import Sum, Count, Q
 from django.core.paginator import Paginator
 from decimal import Decimal
 from ledger.models import Account, Transaction, LedgerEntry
-from ledger.services import execute_deposit
+from ledger.services import execute_deposit, settle_transfer, reverse_transfer
 from ledger.admin_forms import BalanceAdjustmentForm
 from django.db import transaction as db_transaction
 import uuid
@@ -116,7 +116,7 @@ def admin_adjust_balance(request, user_id):
             try:
                 if adj_type == 'CREDIT':
                     execute_deposit(account.id, amount, description=f"Admin Credit: {description}")
-                    messages.success(request, f"Successfully credited {amount} NGN to {user.email}")
+                    messages.success(request, f"Successfully credited ${amount} to {user.email}")
                 elif adj_type == 'DEBIT':
                     if account.balance < amount:
                         messages.error(request, f"Insufficient funds. Current balance: {account.balance}")
@@ -124,12 +124,12 @@ def admin_adjust_balance(request, user_id):
                         with db_transaction.atomic():
                             sys_account, _ = Account.objects.get_or_create(
                                 account_type='SYSTEM_REVENUE',
-                                defaults={'currency': 'NGN', 'balance': Decimal('0.00')}
+                                defaults={'currency': 'USD', 'balance': Decimal('0.00')}
                             )
                             txn = Transaction.objects.create(
                                 transaction_type='FEE',
                                 amount=amount,
-                                currency='NGN',
+                                currency='USD',
                                 status='SUCCESS',
                                 description=f"Admin Debit: {description}",
                                 reference=f"ADM-DEB-{uuid.uuid4().hex[:8].upper()}"
@@ -144,12 +144,12 @@ def admin_adjust_balance(request, user_id):
                             account.save(update_fields=['balance'])
                             sys_account.balance += amount
                             sys_account.save(update_fields=['balance'])
-                        messages.success(request, f"Successfully debited {amount} NGN from {user.email}")
+                        messages.success(request, f"Successfully debited ${amount} from {user.email}")
                 elif adj_type == 'SET':
                     old_balance = account.balance
                     account.balance = amount
                     account.save(update_fields=['balance'])
-                    messages.success(request, f"Balance for {user.email} set from {old_balance} to {amount} NGN")
+                    messages.success(request, f"Balance for {user.email} set from ${old_balance} to ${amount}")
 
                 return redirect('admin_panel:user_detail', user_id=user.id)
             except Exception as e:
@@ -209,6 +209,18 @@ def admin_change_transaction_status(request, txn_id):
             old_status = txn.status
             txn.status = new_status
             txn.save(update_fields=['status'])
-            messages.success(request, f"Transaction {txn.reference} status changed from {old_status} to {new_status}.")
+
+            settled = refunded = False
+            if new_status == 'SUCCESS':
+                settled = settle_transfer(txn)
+            elif new_status in ('FAILED', 'CANCELLED', 'REVERSED', 'REFUNDED'):
+                refunded = reverse_transfer(txn)
+
+            message = f"Transaction {txn.reference} status changed from {old_status} to {new_status}."
+            if settled:
+                message += f" ${txn.amount} credited to the recipient."
+            elif refunded:
+                message += f" ${txn.amount} returned to the sender."
+            messages.success(request, message)
 
     return redirect('admin_panel:transactions')
