@@ -1,0 +1,141 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Jazz Microfinance Bank{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        dark: { 50: '#f8fafc', 100: '#e2e8f0', 200: '#94a3b8', 300: '#64748b', 400: '#475569', 500: '#334155', 600: '#1e293b', 700: '#111827', 800: '#0f172a', 900: '#0b1120', 950: '#060a12' },
+                        brand: { 50: '#eff6ff', 100: '#dbeafe', 200: '#bfdbfe', 300: '#93c5fd', 400: '#60a5fa', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8', 800: '#1e40af', 900: '#1e3a8a' },
+                        success: { 500: '#10b981', 600: '#059669' },
+                        danger: { 500: '#ef4444', 600: '#dc2626' },
+                    },
+                    fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+                }
+            }
+        }
+    </script>
+    <style>
+        * { font-family: 'Inter', system-ui, sans-serif; }
+        body { background: #0b1120; color: #f1f5f9; }
+        .glass { background: rgba(17, 24, 39, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(59, 130, 246, 0.08); }
+        .glass-strong { background: rgba(17, 24, 39, 0.85); backdrop-filter: blur(20px); border: 1px solid rgba(59, 130, 246, 0.12); }
+        .glow-blue { box-shadow: 0 0 20px rgba(59, 130, 246, 0.15), 0 0 60px rgba(59, 130, 246, 0.05); }
+        .glow-blue-strong { box-shadow: 0 0 30px rgba(59, 130, 246, 0.25), 0 0 80px rgba(59, 130, 246, 0.1); }
+        .gradient-border { border-image: linear-gradient(135deg, rgba(59,130,246,0.3), rgba(59,130,246,0.05)) 1; }
+        .input-dark {
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid rgba(59, 130, 246, 0.15);
+            color: #f1f5f9;
+            transition: all 0.2s;
+        }
+        .input-dark:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+            outline: none;
+        }
+        .input-dark::placeholder { color: #475569; }
+        .btn-primary {
+            background: linear-gradient(135deg, #2563eb, #3b82f6);
+            color: white;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #1d4ed8, #2563eb);
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+        }
+        .nav-link { transition: all 0.2s; }
+        .nav-link:hover { background: rgba(59, 130, 246, 0.1); color: #60a5fa; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #0b1120; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #334155; }
+        {% block extra_style %}{% endblock %}
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+    <!-- Navbar -->
+    <nav class="glass-strong sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <a href="/" class="flex items-center space-x-2 group">
+                        <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center shadow-lg">
+                            <span class="text-white font-bold text-sm">J</span>
+                        </div>
+                        <span class="font-bold text-lg text-white group-hover:text-brand-400 transition-colors">Jazz MFB</span>
+                    </a>
+                </div>
+                <div class="flex items-center space-x-2">
+                    {% if user.is_authenticated %}
+                        <a href="{% url 'ledger:dashboard' %}" class="nav-link px-4 py-2 rounded-lg text-sm font-medium text-dark-200">Dashboard</a>
+                        <a href="{% url 'ledger:history' %}" class="nav-link px-4 py-2 rounded-lg text-sm font-medium text-dark-200">History</a>
+                        {% if user.is_staff %}
+                            <a href="{% url 'admin_panel:dashboard' %}" class="nav-link px-4 py-2 rounded-lg text-sm font-medium text-amber-400">Admin</a>
+                        {% endif %}
+                        <div class="w-px h-6 bg-dark-600 mx-1"></div>
+                        <span class="text-sm text-dark-300 hidden sm:inline">{{ user.email }}</span>
+                        <a href="{% url 'users:logout' %}" class="ml-2 px-4 py-2 rounded-lg text-sm font-medium text-danger-500 hover:bg-red-500/10 transition-all">Logout</a>
+                    {% else %}
+                        <a href="{% url 'users:login' %}" class="nav-link px-4 py-2 rounded-lg text-sm font-medium text-dark-200">Login</a>
+                        <a href="{% url 'users:register' %}" class="btn-primary px-5 py-2 rounded-lg text-sm font-semibold">Get Started</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Messages -->
+    {% if messages %}
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4 space-y-2">
+        {% for message in messages %}
+            <div class="glass rounded-lg px-4 py-3 flex items-center space-x-3
+                {% if message.tags == 'error' %}border-l-4 border-l-danger-500 text-red-300
+                {% elif message.tags == 'success' %}border-l-4 border-l-success-500 text-green-300
+                {% else %}border-l-4 border-l-brand-500 text-brand-300{% endif %}">
+                {% if message.tags == 'error' %}
+                    <svg class="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                {% elif message.tags == 'success' %}
+                    <svg class="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                {% else %}
+                    <svg class="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                {% endif %}
+                <span class="text-sm">{{ message }}</span>
+            </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Main Content -->
+    <main class="flex-grow w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-dark-700 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+                <div class="flex items-center space-x-2">
+                    <div class="w-6 h-6 rounded bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center">
+                        <span class="text-white font-bold text-xs">J</span>
+                    </div>
+                    <span class="text-sm text-dark-300">Jazz Microfinance Bank</span>
+                </div>
+                <p class="text-xs text-dark-400">&copy; 2026 Jazz Microfinance Bank. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

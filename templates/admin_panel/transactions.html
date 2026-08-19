@@ -1,0 +1,131 @@
+{% extends 'base.html' %}
+
+{% block title %}All Transactions | Admin Panel{% endblock %}
+
+{% block extra_style %}
+.admin-layout { display: flex; min-height: calc(100vh - 64px); }
+.admin-sidebar { width: 240px; flex-shrink: 0; border-right: 1px solid rgba(30,41,59,0.8); background: rgba(11,17,32,0.95); }
+.admin-content { flex: 1; padding: 2rem; overflow-x: hidden; }
+.sidebar-link { display: flex; align-items: center; padding: 0.75rem 1.25rem; font-size: 0.875rem; font-weight: 500; color: #64748b; transition: all 0.15s; border-left: 3px solid transparent; }
+.sidebar-link:hover, .sidebar-link.active { color: #f1f5f9; background: rgba(59,130,246,0.06); border-left-color: #3b82f6; }
+.txn-row { transition: all 0.15s; }
+.txn-row:hover { background: rgba(59,130,246,0.04); }
+{% endblock %}
+
+{% block content %}
+<div class="admin-layout">
+    <aside class="admin-sidebar py-6">
+        <div class="px-5 mb-6"><p class="text-xs font-semibold text-dark-400 uppercase tracking-wider">Admin Panel</p></div>
+        <nav class="space-y-1">
+            <a href="{% url 'admin_panel:dashboard' %}" class="sidebar-link">Dashboard</a>
+            <a href="{% url 'admin_panel:user_list' %}" class="sidebar-link">Users</a>
+            <a href="{% url 'admin_panel:transactions' %}" class="sidebar-link active">Transactions</a>
+            <div class="border-t border-dark-700 my-4 mx-5"></div>
+            <a href="/admin/" class="sidebar-link" target="_blank">Django Admin</a>
+        </nav>
+    </aside>
+
+    <div class="admin-content">
+        <div class="mb-8">
+            <h1 class="text-2xl font-bold text-white">All Transactions</h1>
+            <p class="text-dark-400 text-sm mt-1">Every transaction across all accounts</p>
+        </div>
+
+        <!-- Filters -->
+        <div class="glass rounded-xl p-4 mb-6">
+            <form method="get" class="flex flex-wrap gap-3">
+                <input type="text" name="q" value="{{ query }}" placeholder="Search reference, description, email..."
+                    class="input-dark flex-1 min-w-[200px] px-4 py-2.5 rounded-lg text-sm">
+                <select name="type" class="input-dark px-4 py-2.5 rounded-lg text-sm">
+                    <option value="">All Types</option>
+                    <option value="DEPOSIT" {% if txn_type == "DEPOSIT" %}selected{% endif %}>Deposit</option>
+                    <option value="WITHDRAWAL" {% if txn_type == "WITHDRAWAL" %}selected{% endif %}>Withdrawal</option>
+                    <option value="TRANSFER" {% if txn_type == "TRANSFER" %}selected{% endif %}>Transfer</option>
+                    <option value="PAYMENT" {% if txn_type == "PAYMENT" %}selected{% endif %}>Payment</option>
+                    <option value="FEE" {% if txn_type == "FEE" %}selected{% endif %}>Fee</option>
+                </select>
+                <select name="status" class="input-dark px-4 py-2.5 rounded-lg text-sm">
+                    <option value="">All Statuses</option>
+                    <option value="SUCCESS" {% if status == "SUCCESS" %}selected{% endif %}>Success</option>
+                    <option value="PENDING" {% if status == "PENDING" %}selected{% endif %}>Pending</option>
+                    <option value="FAILED" {% if status == "FAILED" %}selected{% endif %}>Failed</option>
+                    <option value="CANCELLED" {% if status == "CANCELLED" %}selected{% endif %}>Cancelled</option>
+                </select>
+                <button type="submit" class="btn-primary px-6 py-2.5 rounded-lg text-sm font-semibold">Filter</button>
+            </form>
+        </div>
+
+        <!-- Transactions Table -->
+        <div class="glass rounded-xl overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="min-w-full">
+                    <thead>
+                        <tr class="border-b border-dark-600">
+                            <th class="px-5 py-3 text-left text-xs font-semibold text-dark-400 uppercase">Date</th>
+                            <th class="px-5 py-3 text-left text-xs font-semibold text-dark-400 uppercase">Type</th>
+                            <th class="px-5 py-3 text-left text-xs font-semibold text-dark-400 uppercase">Reference</th>
+                            <th class="px-5 py-3 text-left text-xs font-semibold text-dark-400 uppercase">Description</th>
+                            <th class="px-5 py-3 text-right text-xs font-semibold text-dark-400 uppercase">Amount</th>
+                            <th class="px-5 py-3 text-center text-xs font-semibold text-dark-400 uppercase">Status</th>
+                            <th class="px-5 py-3 text-center text-xs font-semibold text-dark-400 uppercase">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-dark-600/50">
+                        {% for txn in txns_page %}
+                        <tr class="txn-row">
+                            <td class="px-5 py-3 text-sm text-dark-300 whitespace-nowrap">{{ txn.created_at|date:"M d, Y h:iA" }}</td>
+                            <td class="px-5 py-3">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-medium bg-brand-500/10 text-brand-400 border border-brand-500/20">
+                                    {{ txn.get_transaction_type_display }}
+                                </span>
+                            </td>
+                            <td class="px-5 py-3 text-xs text-dark-400 font-mono whitespace-nowrap">{{ txn.reference|default:"-" }}</td>
+                            <td class="px-5 py-3 text-sm text-white">{{ txn.description|default:"-" }}</td>
+                            <td class="px-5 py-3 text-sm font-bold text-right tabular-nums text-white whitespace-nowrap">{{ txn.currency }} {{ txn.amount }}</td>
+                            <td class="px-5 py-3 text-center">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-medium
+                                    {% if txn.status == 'SUCCESS' %}bg-green-500/10 text-green-400 border border-green-500/20
+                                    {% elif txn.status == 'PENDING' %}bg-yellow-500/10 text-yellow-400 border border-yellow-500/20
+                                    {% elif txn.status == 'PROCESSING' %}bg-blue-500/10 text-blue-400 border border-blue-500/20
+                                    {% else %}bg-red-500/10 text-red-400 border border-red-500/20{% endif %}">
+                                    {{ txn.get_status_display }}
+                                </span>
+                            </td>
+                            <td class="px-5 py-3 text-center">
+                                <form method="post" action="{% url 'admin_panel:change_txn_status' txn.id %}" class="inline-flex items-center space-x-2">
+                                    {% csrf_token %}
+                                    <select name="status" class="input-dark px-2 py-1 rounded-lg text-xs" onchange="this.form.submit()">
+                                        <option value="PENDING" {% if txn.status == 'PENDING' %}selected{% endif %}>Pending</option>
+                                        <option value="PROCESSING" {% if txn.status == 'PROCESSING' %}selected{% endif %}>Processing</option>
+                                        <option value="SUCCESS" {% if txn.status == 'SUCCESS' %}selected{% endif %}>Success</option>
+                                        <option value="FAILED" {% if txn.status == 'FAILED' %}selected{% endif %}>Failed</option>
+                                        <option value="CANCELLED" {% if txn.status == 'CANCELLED' %}selected{% endif %}>Cancelled</option>
+                                        <option value="REVERSED" {% if txn.status == 'REVERSED' %}selected{% endif %}>Reversed</option>
+                                    </select>
+                                </form>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="px-5 py-12 text-center text-dark-400 text-sm">No transactions found</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {% if txns_page.has_other_pages %}
+            <div class="px-5 py-3 border-t border-dark-600 flex justify-center space-x-2">
+                {% if txns_page.has_previous %}
+                    <a href="?page={{ txns_page.previous_page_number }}&q={{ query }}&type={{ txn_type }}&status={{ status }}" class="px-3 py-1.5 rounded-lg text-xs font-medium text-dark-300 hover:text-white glass">Prev</a>
+                {% endif %}
+                <span class="px-3 py-1.5 text-xs text-dark-400">Page {{ txns_page.number }} of {{ txns_page.paginator.num_pages }}</span>
+                {% if txns_page.has_next %}
+                    <a href="?page={{ txns_page.next_page_number }}&q={{ query }}&type={{ txn_type }}&status={{ status }}" class="px-3 py-1.5 rounded-lg text-xs font-medium text-dark-300 hover:text-white glass">Next</a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

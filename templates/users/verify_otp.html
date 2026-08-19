@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+
+{% block title %}Verify OTP | Jazz Microfinance Bank{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto mt-8">
+    <div class="glass rounded-2xl glow-blue p-8">
+        <div class="text-center mb-8">
+            <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center mx-auto mb-4 shadow-lg">
+                <svg class="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+            </div>
+            <h1 class="text-2xl font-bold text-white">Verify Your Email</h1>
+            <p class="text-dark-300 mt-1 text-sm">Enter the 6-digit code sent to</p>
+            <p class="text-brand-400 font-medium text-sm mt-1">{{ email }}</p>
+            <p class="text-dark-400 text-xs mt-2">Check your server terminal for the OTP code</p>
+        </div>
+
+        <form method="post" class="space-y-5">
+            {% csrf_token %}
+            {{ form.email }}
+            {{ form.purpose }}
+            <div>
+                <label class="block text-sm font-medium text-dark-200 mb-1.5">OTP Code</label>
+                <input type="text" name="code" maxlength="6" required
+                    class="input-dark w-full px-4 py-4 rounded-xl text-center text-3xl tracking-[0.5em] font-mono font-bold"
+                    placeholder="------">
+            </div>
+            <button type="submit" class="btn-primary w-full py-3 rounded-xl text-sm font-semibold glow-blue-strong">
+                Verify Code
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

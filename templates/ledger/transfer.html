@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+
+{% block title %}Transfer Funds | Jazz Microfinance Bank{% endblock %}
+
+{% block content %}
+<div class="max-w-xl mx-auto mt-4">
+    <div class="glass rounded-2xl overflow-hidden">
+        <div class="px-8 py-5 border-b border-dark-600 flex justify-between items-center">
+            <div>
+                <h2 class="text-lg font-bold text-white">Transfer Funds</h2>
+                <p class="text-xs text-dark-400 mt-0.5">Send money to any bank account</p>
+            </div>
+            <div class="glass rounded-lg px-4 py-2">
+                <p class="text-xs text-dark-400">Available</p>
+                <p class="text-sm font-bold text-white tabular-nums">{{ account.currency }} {{ account.balance }}</p>
+            </div>
+        </div>
+
+        <form method="post" class="p-8 space-y-6">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+                <div class="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-sm">
+                    {{ form.non_field_errors }}
+                </div>
+            {% endif %}
+
+            <!-- Bank Selection -->
+            <div>
+                <label class="block text-sm font-medium text-dark-200 mb-1.5">Select Bank</label>
+                <select name="{{ form.bank.name }}" id="{{ form.bank.id_for_label }}"
+                    class="input-dark w-full px-4 py-3 rounded-xl text-sm" required>
+                    {% for value, label in form.bank.field.choices %}
+                        <option value="{{ value }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+                {% if form.bank.errors %}
+                    <p class="text-red-400 text-xs mt-1">{{ form.bank.errors.0 }}</p>
+                {% endif %}
+                <p class="text-xs text-dark-400 mt-1">Transfers to Jazz MFB are instant. Other banks may be pending.</p>
+            </div>
+
+            <!-- Account Number -->
+            <div>
+                <label class="block text-sm font-medium text-dark-200 mb-1.5">Account Number</label>
+                <input type="text" name="{{ form.account_number.name }}" id="{{ form.account_number.id_for_label }}"
+                    class="input-dark w-full px-4 py-3 rounded-xl text-sm tabular-nums tracking-wider"
+                    placeholder="Enter 10-digit account number" maxlength="10" pattern="[0-9]{10}" required
+                    oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                {% if form.account_number.errors %}
+                    <p class="text-red-400 text-xs mt-1">{{ form.account_number.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <!-- Amount -->
+            <div>
+                <label class="block text-sm font-medium text-dark-200 mb-1.5">Amount ({{ account.currency }})</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        <span class="text-dark-400 text-sm font-medium">{{ account.currency }}</span>
+                    </div>
+                    <input type="number" name="{{ form.amount.name }}" id="{{ form.amount.id_for_label }}" step="0.01" min="0.01"
+                        class="input-dark w-full pl-14 pr-4 py-3 rounded-xl text-sm tabular-nums"
+                        placeholder="0.00" required>
+                </div>
+                {% if form.amount.errors %}
+                    <p class="text-red-400 text-xs mt-1">{{ form.amount.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <!-- Description -->
+            <div>
+                <label class="block text-sm font-medium text-dark-200 mb-1.5">Description <span class="text-dark-400">(Optional)</span></label>
+                <input type="text" name="{{ form.description.name }}" id="{{ form.description.id_for_label }}"
+                    class="input-dark w-full px-4 py-3 rounded-xl text-sm"
+                    placeholder="What is this for?">
+            </div>
+
+            <button type="submit" class="btn-primary w-full py-3.5 rounded-xl text-sm font-semibold glow-blue-strong">
+                <span class="flex items-center justify-center space-x-2">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                    <span>Send Money</span>
+                </span>
+            </button>
+
+            <div class="text-center">
+                <a href="{% url 'ledger:dashboard' %}" class="text-sm text-dark-300 hover:text-brand-400 transition-colors">Cancel and return to dashboard</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
